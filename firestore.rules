@@ -1,0 +1,104 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function getUserData(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function isMemberOfFacility(facilityId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData(request.auth.uid).facilityId == facilityId;
+    }
+
+    // 1. Healthcare Worker User Profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow list: if false; // Disallow query scraping of user directory
+
+      allow create: if isSignedIn() &&
+        request.auth.uid == userId &&
+        isValidId(userId) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.email is string &&
+        request.resource.data.displayName is string &&
+        request.resource.data.facilityId is string &&
+        request.resource.data.role in ['nurse', 'chew', 'doctor', 'officer', 'admin'];
+
+      allow update: if isSignedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.facilityId is string;
+
+      allow delete: if false;
+    }
+
+    // 2. Healthcare Facility Profiles
+    match /facilities/{facilityId} {
+      allow get: if isSignedIn() && isValidId(facilityId);
+      // Allow authenticated healthcare workers to list facilities to join or view directory
+      allow list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+        isValidId(facilityId) &&
+        request.resource.data.facilityId == facilityId &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.name.size() <= 150 &&
+        request.resource.data.createdBy == request.auth.uid;
+
+      allow update: if isSignedIn() &&
+        isValidId(facilityId) &&
+        isMemberOfFacility(facilityId) &&
+        request.resource.data.facilityId == facilityId;
+
+      allow delete: if false;
+    }
+
+    // 3. Facility Patient Records (Strictly isolated by Facility ID)
+    match /facilities/{facilityId}/records/{recordId} {
+      // Must be a registered member of this exact facility to read
+      allow get: if isSignedIn() && isValidId(recordId) && isMemberOfFacility(facilityId);
+      allow list: if isSignedIn() && isMemberOfFacility(facilityId);
+
+      // Must be a registered member of this facility to create records
+      allow create: if isSignedIn() &&
+        isValidId(recordId) &&
+        isMemberOfFacility(facilityId) &&
+        request.resource.data.id == recordId &&
+        request.resource.data.facilityId == facilityId &&
+        request.resource.data.recordedBy == request.auth.uid &&
+        request.resource.data.patientIdentifier is string &&
+        request.resource.data.patientIdentifier.size() <= 100 &&
+        request.resource.data.symptoms is string &&
+        request.resource.data.symptoms.size() <= 3000 &&
+        request.resource.data.warningLevel in ['red', 'yellow', 'green'];
+
+      allow update: if isSignedIn() &&
+        isValidId(recordId) &&
+        isMemberOfFacility(facilityId) &&
+        request.resource.data.facilityId == facilityId &&
+        request.resource.data.id == recordId;
+
+      allow delete: if isSignedIn() &&
+        isValidId(recordId) &&
+        isMemberOfFacility(facilityId);
+    }
+  }
+}

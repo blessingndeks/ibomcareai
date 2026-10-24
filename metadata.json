@@ -1,0 +1,6 @@
+{
+  "name": "IbomCare AI — Healthcare Support & Dev Hub",
+  "description": "Mobile clinical decision-support companion and engineering workbench for nurses and community health workers in Akwa Ibom, Nigeria.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

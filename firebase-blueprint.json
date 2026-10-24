@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Healthcare worker profile associated with a specific healthcare facility.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth user ID" },
+        "email": { "type": "string", "format": "email", "description": "Worker email address" },
+        "displayName": { "type": "string", "description": "Healthcare worker full name" },
+        "role": { "type": "string", "enum": ["nurse", "chew", "doctor", "officer", "admin"], "description": "Clinical role at facility" },
+        "facilityId": { "type": "string", "description": "ID of associated healthcare facility" },
+        "facilityName": { "type": "string", "description": "Name of associated facility" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["userId", "email", "displayName", "role", "facilityId", "createdAt"]
+    },
+    "Facility": {
+      "title": "Facility",
+      "description": "Registered healthcare facility profile in Akwa Ibom State.",
+      "type": "object",
+      "properties": {
+        "facilityId": { "type": "string", "description": "Unique identifier for the facility" },
+        "name": { "type": "string", "description": "Official facility name" },
+        "facilityType": { "type": "string", "description": "Type of healthcare facility" },
+        "lga": { "type": "string", "description": "Local Government Area in Akwa Ibom" },
+        "address": { "type": "string", "description": "Physical location or ward" },
+        "phone": { "type": "string", "description": "Official contact phone number" },
+        "contactEmail": { "type": "string", "description": "Contact email address" },
+        "createdBy": { "type": "string", "description": "User ID of registering health worker" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of registration" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["facilityId", "name", "facilityType", "lga", "createdBy", "createdAt"]
+    },
+    "PatientRecord": {
+      "title": "PatientRecord",
+      "description": "Clinical intake and triage record stored within a specific facility.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique record identifier" },
+        "facilityId": { "type": "string", "description": "Parent facility identifier" },
+        "patientIdentifier": { "type": "string", "description": "Patient reference code or nickname" },
+        "age": { "type": "number", "description": "Patient age in years or months" },
+        "ageUnit": { "type": "string", "enum": ["years", "months"], "description": "Unit of age" },
+        "sex": { "type": "string", "enum": ["Female", "Male", "Other"], "description": "Biological sex" },
+        "language": { "type": "string", "enum": ["English", "Nigerian Pidgin"], "description": "Intake language" },
+        "symptoms": { "type": "string", "description": "Reported symptoms narrative" },
+        "duration": { "type": "string", "description": "Duration of symptoms" },
+        "temperature": { "type": "number", "description": "Measured body temperature in Celsius" },
+        "additionalNotes": { "type": "string", "description": "Observations recorded by nurse" },
+        "warningLevel": { "type": "string", "enum": ["red", "yellow", "green"], "description": "Triage priority flag" },
+        "warningSigns": { "type": "array", "description": "List of flagged warning signs" },
+        "summary": { "type": "object", "description": "Organized clinical summary" },
+        "recordedBy": { "type": "string", "description": "User ID of recording health worker" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of record creation" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["id", "facilityId", "patientIdentifier", "age", "ageUnit", "sex", "symptoms", "duration", "warningLevel", "recordedBy", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User accounts for healthcare workers"
+    },
+    "/facilities/{facilityId}": {
+      "schema": { "$ref": "#/entities/Facility" },
+      "description": "Registered healthcare facility profiles"
+    },
+    "/facilities/{facilityId}/records/{recordId}": {
+      "schema": { "$ref": "#/entities/PatientRecord" },
+      "description": "Patient symptom records partitioned by healthcare facility"
+    }
+  }
+}
